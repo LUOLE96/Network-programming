@@ -24,6 +24,12 @@ int main(void)
     //seraddr.sin_addr.s_addr = inet_addr("127.0.0.1");
     //inet_aton("127.0.0.1",&servaddr.sin_addr);
 
+	int on = 1;
+	if(setsockopt(listenfd,SOL_SOCKET,SO_REUSEADDR,&on,sizeof(on)) < 0){
+		perror("setsockopt");
+		exit(EXIT_FAILURE);	
+	}
+
     if(bind(listenfd,(struct sockaddr *)&seraddr,sizeof(seraddr)) < 0)
     {
         perror("bind");

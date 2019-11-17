@@ -6,6 +6,26 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <string.h>
+#include <unistd.h>
+
+void do_service(int conn)
+{
+	char recvbuf[1024] = {0};
+	while(1)
+	{
+	memset(recvbuf,0,sizeof(recvbuf));
+		int ret = read(conn,recvbuf,sizeof(recvbuf));
+		if(ret == 0){
+			printf("client close\n");
+			break;
+		}
+		else if(ret == -1)
+			exit(EXIT_FAILURE);
+		fputs(recvbuf,stdout);
+		write(conn,recvbuf,ret);
+	}
+}
+
 
 int main(void)
 {
@@ -45,21 +65,31 @@ int main(void)
     struct sockaddr_in peeraddr;
     socklen_t peerlen = sizeof(peeraddr);
     int conn;
-    if((conn = accept(listenfd,(struct sockaddr *)&peeraddr,&peerlen)) < 0)
-    {
-        perror("accept");
-        exit(EXIT_FAILURE);
-    }
+	pid_t pid;
 
-    char recvbuf[1024] = {0};
-    while(1)
-    {
-        memset(recvbuf,0,sizeof(recvbuf));
-        int ret = read(conn,recvbuf,sizeof(recvbuf));
-        fputs(recvbuf,stdout);
-        write(conn,recvbuf,ret);
-    }
-    close(conn);
-    close(listenfd);
+	while(1)
+	{
+    		if((conn = accept(listenfd,(struct sockaddr *)&peeraddr,&peerlen)) < 0)
+    		{
+        		perror("accept");
+        		exit(EXIT_FAILURE);
+   		}
+		printf("connect ip : %s,port : %d\n",inet_ntoa(peeraddr.sin_addr),ntohs(peeraddr.sin_port));
+		
+		pid = fork();
+		if(pid == -1){
+			perror("fork");
+			exit(EXIT_FAILURE);
+		}
+		if(pid == 0){
+			close(listenfd);	
+			do_service(conn);
+			exit(EXIT_SUCCESS);
+		}
+		else{
+			close(conn);
+		}
+    		
+	}
     return 0;
 }
